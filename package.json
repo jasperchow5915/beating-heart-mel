@@ -1,0 +1,24 @@
+{
+  "name": "beating-heart-of-melbourne",
+  "version": "0.1.0",
+  "private": true,
+  "description": "An animated tribute to data.pour.paris - Melbourne open data pulsing over 24 hours like a beating heart.",
+  "type": "module",
+  "scripts": {
+    "fetch-data": "node scripts/fetch-data.mjs",
+    "fetch-focus": "node scripts/fetch-focus.mjs",
+    "fetch-trams": "node scripts/fetch-trams.mjs",
+    "fetch-metro": "node scripts/fetch-metro.mjs",
+    "fetch-flights": "node scripts/fetch-flights.mjs",
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "maplibre-gl": "^4.7.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10"
+  }
+}

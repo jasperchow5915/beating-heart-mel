@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="An animated tribute to data.pour.paris - a day of Melbourne pedestrian life pulsing across the city like a beating heart."
+    />
+    <title>The Beating Heart of Melbourne</title>
+  </head>
+  <body>
+    <div id="map"></div>
+
+    <header class="hero">
+      <h1>The Beating Heart of <span>Melbourne</span></h1>
+      <p class="tagline">A day of pedestrian life across the city, pulsing hour by hour.</p>
+      <div class="hero-actions">
+        <button id="focusToggle" class="focus-toggle" type="button">Focus on 188 William Street</button>
+        <button id="tramToggle" class="tram-toggle" type="button">Hide trams</button>
+        <button id="metroToggle" class="metro-toggle" type="button">Hide metro</button>
+        <button id="flightToggle" class="flight-toggle" type="button">Show flights</button>
+      </div>
+    </header>
+
+    <aside id="focusInfo" class="focus-info hidden" aria-live="polite">
+      <div class="focus-info-head">
+        <strong>188 William Street</strong>
+        <button id="focusExit" class="focus-exit" type="button" aria-label="Exit focus view">&times;</button>
+      </div>
+      <div class="focus-metrics">
+        <div class="focus-metric">
+          <span id="focusPed">0</span>
+          <small>pedestrians / hr within 350&nbsp;m</small>
+        </div>
+        <div class="focus-metric">
+          <span id="focusStreets">0</span>
+          <small>street segments highlighted</small>
+        </div>
+      </div>
+      <p class="focus-sub">Streets &amp; location from OpenStreetMap</p>
+    </aside>
+
+    <div id="loading" class="loading">Loading the city&rsquo;s pulse&hellip;</div>
+
+    <section class="panel" aria-label="Playback controls">
+      <div class="panel-top">
+        <button id="playPause" class="play" aria-label="Play or pause">Pause</button>
+        <div class="clock" id="clock">08:00</div>
+        <label class="speed">
+          <span>Speed</span>
+          <input id="speed" type="range" min="0.4" max="4" step="0.1" value="1.5" />
+        </label>
+      </div>
+
+      <div id="vitals" class="vitals-row" aria-label="City vitals"></div>
+
+      <canvas id="chart" class="chart"></canvas>
+
+      <input
+        id="scrub"
+        class="scrub"
+        type="range"
+        min="0"
+        max="1439"
+        step="1"
+        value="480"
+        aria-label="Time of day"
+      />
+
+      <div class="legend">
+        <span class="legend-label">Quiet</span>
+        <div class="legend-bar"></div>
+        <span class="legend-label">Busy</span>
+        <span class="legend-tram"><i></i>Trams</span>
+        <span class="legend-metro"><i></i>Metro</span>
+        <span class="legend-flight"><i></i>Flights</span>
+        <span class="attrib">
+          Data:
+          <a id="srcLink" href="https://melbournetestbed.opendatasoft.com" target="_blank" rel="noopener"
+            >City of Melbourne Open Data</a
+          >
+          (CC BY 4.0). Inspired by
+          <a href="https://data.pour.paris" target="_blank" rel="noopener">data.pour.paris</a>.
+        </span>
+      </div>
+    </section>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
