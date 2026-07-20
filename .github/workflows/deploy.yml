@@ -26,14 +26,14 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
+      # Requires Pages to be enabled with "GitHub Actions" as the source
+      # (Settings -> Pages). We don't auto-enable, as the default token isn't
+      # permitted to create the Pages site.
       - name: Configure Pages
         uses: actions/configure-pages@v5
-        with:
-          # Attempt to turn on Pages (Actions source) automatically.
-          enablement: true
 
       - name: Install dependencies
         run: npm ci
