@@ -727,3 +727,127 @@ input[type='range'] {
 .vital--flight .vital-bar i {
   background: #dbeafe;
 }
+
+/* --- Mobile layout (keep the panel/legend from covering the map) --- */
+@media (max-width: 640px) {
+  /* Tighten the hero so it doesn't crowd the top of the map. */
+  .hero {
+    top: calc(12px + env(safe-area-inset-top));
+    left: 12px;
+    right: 12px;
+    max-width: none;
+  }
+  .hero h1 {
+    font-size: 1.3rem;
+  }
+  .hero .tagline {
+    display: none;
+  }
+  .hero-actions {
+    gap: 6px;
+    margin-top: 10px;
+  }
+  .focus-toggle,
+  .tram-toggle,
+  .metro-toggle,
+  .flight-toggle {
+    margin-top: 0;
+    padding: 7px 11px;
+    font-size: 0.78rem;
+  }
+
+  /* Bottom panel: full-width and height-capped so the map stays visible. */
+  .panel {
+    left: 8px;
+    right: 8px;
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    width: auto;
+    transform: none;
+    padding: 10px 12px;
+    border-radius: 14px;
+    max-height: 54vh;
+    overflow-y: auto;
+  }
+  .panel-top {
+    gap: 10px;
+  }
+  .clock {
+    font-size: 1.35rem;
+  }
+  .speed {
+    font-size: 0.6rem;
+  }
+  .speed input {
+    width: 72px;
+  }
+
+  /* Vitals become one swipeable row instead of wrapping into a tall block. */
+  .vitals-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 8px;
+    margin-top: 10px;
+    padding-bottom: 4px;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+  .vital {
+    flex: 0 0 auto;
+    min-width: 118px;
+    gap: 9px;
+    padding: 9px 12px 11px;
+    scroll-snap-align: start;
+  }
+  .vital-value b {
+    font-size: 1.4rem;
+  }
+  .vital-value small,
+  .vital-label {
+    font-size: 0.62rem;
+  }
+
+  /* Shorter ECG trace on small screens. */
+  .chart {
+    height: 60px;
+    margin-top: 8px;
+  }
+
+  /* Compact legend; attribution drops to its own small line. */
+  .legend {
+    flex-wrap: wrap;
+    gap: 5px 10px;
+    font-size: 0.62rem;
+  }
+  .legend-bar {
+    width: 64px;
+    height: 6px;
+  }
+  .attrib {
+    flex-basis: 100%;
+    margin-left: 0;
+    text-align: left;
+    font-size: 0.58rem;
+    line-height: 1.35;
+  }
+
+  /* Focus stats dock to the top as a slim bar (was overlapping the taller panel). */
+  .focus-info {
+    top: calc(8px + env(safe-area-inset-top));
+    left: 8px;
+    right: 8px;
+    bottom: auto;
+    width: auto;
+    padding: 10px 12px;
+  }
+  .focus-metrics {
+    flex-direction: row;
+    gap: 18px;
+    margin-top: 8px;
+  }
+  .focus-metric span {
+    font-size: 1.2rem;
+  }
+  .focus-sub {
+    margin-top: 8px;
+  }
+}
