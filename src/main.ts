@@ -211,6 +211,11 @@ async function main(): Promise<void> {
   window.addEventListener('resize', updateVitalsHint);
   requestAnimationFrame(updateVitalsHint);
 
+  // Tapping the "more" button scrolls the vitals row rightward.
+  el<HTMLButtonElement>('vitalsMore').addEventListener('click', () => {
+    vitalsRow.scrollBy({ left: Math.round(vitalsRow.clientWidth * 0.8), behavior: 'smooth' });
+  });
+
   // --- Playback state ---
   const speedEl = el<HTMLInputElement>('speed');
   let timeHours = 8; // open on the morning build-up

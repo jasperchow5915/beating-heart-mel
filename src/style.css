@@ -860,21 +860,18 @@ input[type='range'] {
   }
 }
 
-/* --- Vitals "swipe for more" hint (mobile only) --- */
+/* --- Vitals "more" control (mobile only) --- */
 .vitals-wrap {
   position: relative;
 }
 
-.vitals-hint {
+/* Decorative fade showing the row continues to the right. */
+.vitals-fade {
   position: absolute;
   top: 0;
   right: 0;
   bottom: 0;
   width: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding-right: 6px;
   pointer-events: none;
   border-radius: 0 12px 12px 0;
   background: linear-gradient(to right, rgba(14, 12, 24, 0), rgba(14, 12, 24, 0.9) 70%);
@@ -882,23 +879,46 @@ input[type='range'] {
   transition: opacity 0.3s ease;
 }
 
-.vitals-wrap.show-hint .vitals-hint {
-  opacity: 1;
-}
-
-.vitals-hint span {
+/* Tappable button that scrolls the vitals to reveal trams / trains / aircraft. */
+.vitals-more {
+  position: absolute;
+  top: calc(50% - 14px);
+  right: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.16);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.32);
   color: #fff;
-  font-size: 16px;
+  font-size: 17px;
   line-height: 1;
-  animation: swipe-nudge 1.3s ease-in-out infinite;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease, background 0.15s ease;
+}
+
+.vitals-wrap.show-hint .vitals-fade {
+  opacity: 1;
+}
+
+.vitals-wrap.show-hint .vitals-more {
+  opacity: 1;
+  pointer-events: auto;
+  animation: swipe-nudge 1.4s ease-in-out infinite;
+}
+
+.vitals-more:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.vitals-more:active {
+  animation: none;
+  transform: scale(0.9);
 }
 
 @keyframes swipe-nudge {
@@ -907,13 +927,14 @@ input[type='range'] {
     transform: translateX(0);
   }
   50% {
-    transform: translateX(-5px);
+    transform: translateX(-4px);
   }
 }
 
-/* The vitals never overflow on wider screens, so the hint is mobile-only. */
+/* Wider screens don't overflow, so the control is mobile-only. */
 @media (min-width: 641px) {
-  .vitals-hint {
+  .vitals-fade,
+  .vitals-more {
     display: none;
   }
 }
