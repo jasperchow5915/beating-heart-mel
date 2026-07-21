@@ -851,3 +851,11 @@ input[type='range'] {
     margin-top: 8px;
   }
 }
+
+@media (max-width: 640px) {
+  /* Hide the zoom control on phones (pinch-to-zoom works); frees the whole
+     top-right so it can't collide with the title. */
+  .maplibregl-ctrl-top-right {
+    display: none;
+  }
+}

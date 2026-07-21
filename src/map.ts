@@ -46,7 +46,8 @@ export class HeartMap {
       attributionControl: false,
       antialias: true,
     });
-    this.map.addControl(new maplibregl.AttributionControl({ compact: true }), 'top-right');
+    // Attribution is shown in the app's own legend (see index.html) to avoid
+    // the on-map control overlapping the title. Keep only zoom/compass here.
     this.map.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'top-right');
   }
 
