@@ -860,30 +860,38 @@ input[type='range'] {
   }
 }
 
-/* --- Vitals "more" control (mobile only) --- */
+/* --- Vitals scroll controls (mobile only) --- */
 .vitals-wrap {
   position: relative;
 }
 
-/* Decorative fade showing the row continues to the right. */
+/* Decorative fades showing the row continues in that direction. */
 .vitals-fade {
   position: absolute;
   top: 0;
-  right: 0;
   bottom: 0;
   width: 56px;
   pointer-events: none;
-  border-radius: 0 12px 12px 0;
-  background: linear-gradient(to right, rgba(14, 12, 24, 0), rgba(14, 12, 24, 0.9) 70%);
   opacity: 0;
   transition: opacity 0.3s ease;
 }
 
-/* Tappable button that scrolls the vitals to reveal trams / trains / aircraft. */
-.vitals-more {
+.vitals-fade--right {
+  right: 0;
+  border-radius: 0 12px 12px 0;
+  background: linear-gradient(to right, rgba(14, 12, 24, 0), rgba(14, 12, 24, 0.9) 70%);
+}
+
+.vitals-fade--left {
+  left: 0;
+  border-radius: 12px 0 0 12px;
+  background: linear-gradient(to left, rgba(14, 12, 24, 0), rgba(14, 12, 24, 0.9) 70%);
+}
+
+/* Round buttons that scroll the vitals row to reveal more chips. */
+.vitals-nav {
   position: absolute;
   top: calc(50% - 14px);
-  right: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -902,23 +910,41 @@ input[type='range'] {
   transition: opacity 0.3s ease, background 0.15s ease;
 }
 
-.vitals-wrap.show-hint .vitals-fade {
+.vitals-nav--next {
+  right: 6px;
+}
+
+.vitals-nav--prev {
+  left: 6px;
+}
+
+.vitals-nav:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.vitals-nav:active {
+  animation: none;
+  transform: scale(0.9);
+}
+
+/* Reveal each control only when there is content in that direction. */
+.vitals-wrap.can-next .vitals-fade--right {
   opacity: 1;
 }
 
-.vitals-wrap.show-hint .vitals-more {
+.vitals-wrap.can-next .vitals-nav--next {
   opacity: 1;
   pointer-events: auto;
   animation: swipe-nudge 1.4s ease-in-out infinite;
 }
 
-.vitals-more:hover {
-  background: rgba(255, 255, 255, 0.3);
+.vitals-wrap.can-prev .vitals-fade--left {
+  opacity: 1;
 }
 
-.vitals-more:active {
-  animation: none;
-  transform: scale(0.9);
+.vitals-wrap.can-prev .vitals-nav--prev {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 @keyframes swipe-nudge {
@@ -931,10 +957,10 @@ input[type='range'] {
   }
 }
 
-/* Wider screens don't overflow, so the control is mobile-only. */
+/* Wider screens don't overflow, so the controls are mobile-only. */
 @media (min-width: 641px) {
   .vitals-fade,
-  .vitals-more {
+  .vitals-nav {
     display: none;
   }
 }

@@ -201,20 +201,23 @@ async function main(): Promise<void> {
   // Mobile: hint that the vitals scroll sideways (trains + aircraft are to the
   // right). The cue fades out once the user reaches the end.
   const vitalsWrap = vitalsRow.parentElement;
-  const updateVitalsHint = (): void => {
+  const updateVitalsNav = (): void => {
     if (!vitalsWrap) return;
     const overflow = vitalsRow.scrollWidth - vitalsRow.clientWidth;
-    const atEnd = vitalsRow.scrollLeft >= overflow - 8;
-    vitalsWrap.classList.toggle('show-hint', overflow > 8 && !atEnd);
+    const hasOverflow = overflow > 8;
+    vitalsWrap.classList.toggle('can-prev', hasOverflow && vitalsRow.scrollLeft > 8);
+    vitalsWrap.classList.toggle('can-next', hasOverflow && vitalsRow.scrollLeft < overflow - 8);
   };
-  vitalsRow.addEventListener('scroll', updateVitalsHint, { passive: true });
-  window.addEventListener('resize', updateVitalsHint);
-  requestAnimationFrame(updateVitalsHint);
+  vitalsRow.addEventListener('scroll', updateVitalsNav, { passive: true });
+  window.addEventListener('resize', updateVitalsNav);
+  requestAnimationFrame(updateVitalsNav);
 
-  // Tapping the "more" button scrolls the vitals row rightward.
-  el<HTMLButtonElement>('vitalsMore').addEventListener('click', () => {
-    vitalsRow.scrollBy({ left: Math.round(vitalsRow.clientWidth * 0.8), behavior: 'smooth' });
-  });
+  // Prev/next buttons scroll the vitals row by ~one screen-width.
+  const scrollVitals = (dir: number): void => {
+    vitalsRow.scrollBy({ left: dir * Math.round(vitalsRow.clientWidth * 0.8), behavior: 'smooth' });
+  };
+  el<HTMLButtonElement>('vitalsMore').addEventListener('click', () => scrollVitals(1));
+  el<HTMLButtonElement>('vitalsPrev').addEventListener('click', () => scrollVitals(-1));
 
   // --- Playback state ---
   const speedEl = el<HTMLInputElement>('speed');
