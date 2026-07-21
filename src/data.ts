@@ -43,3 +43,40 @@ export async function loadHeartbeat(): Promise<HeartbeatData> {
   }
   return (await res.json()) as HeartbeatData;
 }
+
+
+/** Index of the available per-date files (public/data/day/index.json). */
+export interface DayIndex {
+  earliest: string | null;
+  latest: string | null;
+  count: number;
+  dates: string[];
+}
+
+/** A single date's hourly profile (public/data/day/<date>.json). */
+export interface DayData {
+  date: string;
+  /** location_id -> 24 hourly counts. */
+  hourlyById: Record<string, number[]>;
+  cityTotals: number[];
+}
+
+export async function loadDayIndex(): Promise<DayIndex | null> {
+  try {
+    const res = await fetch(`${import.meta.env.BASE_URL}data/day/index.json`);
+    if (!res.ok) return null;
+    return (await res.json()) as DayIndex;
+  } catch {
+    return null;
+  }
+}
+
+export async function loadDay(date: string): Promise<DayData | null> {
+  try {
+    const res = await fetch(`${import.meta.env.BASE_URL}data/day/${date}.json`);
+    if (!res.ok) return null;
+    return (await res.json()) as DayData;
+  } catch {
+    return null;
+  }
+}

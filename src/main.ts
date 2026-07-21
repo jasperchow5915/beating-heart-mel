@@ -1,7 +1,7 @@
 import './style.css';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
-import { loadHeartbeat, type HeartbeatData } from './data';
+import { loadHeartbeat, loadDay, loadDayIndex, type DayData, type HeartbeatData } from './data';
 import { HeartMap } from './map';
 import { HeartChart } from './heartbeat';
 import { FocusView } from './focus';
@@ -72,14 +72,19 @@ async function main(): Promise<void> {
   if (!data) return;
 
   const { sensors, cityTotals, meta } = data;
+  // Typical-day values double as stable scaling references, so a busier or
+  // quieter selected date reads as bigger/faster or smaller/slower.
   const maxCity = Math.max(...cityTotals);
   const maxSensor = meta.maxSensorHourly;
+  const typicalHourly = sensors.map((s) => s.hourly);
+  const typicalCityTotals = cityTotals;
+  let activeCityTotals: number[] = cityTotals;
 
   el<HTMLAnchorElement>('srcLink').href = meta.portal;
 
   const map = new HeartMap('map');
   const chart = new HeartChart(el<HTMLCanvasElement>('chart'));
-  chart.setData(cityTotals);
+  chart.setData(activeCityTotals);
 
   await map.whenReady();
   map.init(sensors);
@@ -219,6 +224,59 @@ async function main(): Promise<void> {
   el<HTMLButtonElement>('vitalsMore').addEventListener('click', () => scrollVitals(1));
   el<HTMLButtonElement>('vitalsPrev').addEventListener('click', () => scrollVitals(-1));
 
+  // --- Date selection (lazy-loaded per-date files; typical day is default) ---
+  const applyDay = (day: DayData | null): void => {
+    if (day) {
+      for (const s of sensors) s.hourly = day.hourlyById[String(s.id)] ?? new Array(24).fill(0);
+      activeCityTotals = day.cityTotals;
+    } else {
+      sensors.forEach((s, i) => {
+        s.hourly = typicalHourly[i];
+      });
+      activeCityTotals = typicalCityTotals;
+    }
+    chart.setData(activeCityTotals);
+  };
+
+  const datePicker = el<HTMLInputElement>('datePicker');
+  const typicalBtn = el<HTMLButtonElement>('typicalDay');
+  const setTypical = (on: boolean, note?: string): void => {
+    typicalBtn.classList.toggle('active', on);
+    datePicker.title = note ?? (on ? 'Showing the typical day' : `Showing ${datePicker.value}`);
+  };
+
+  const dayIndex = await loadDayIndex();
+  if (dayIndex?.earliest && dayIndex.latest) {
+    datePicker.min = dayIndex.earliest;
+    datePicker.max = dayIndex.latest;
+    datePicker.addEventListener('change', async () => {
+      const date = datePicker.value;
+      if (!date) {
+        applyDay(null);
+        setTypical(true);
+        return;
+      }
+      const day = await loadDay(date);
+      if (day) {
+        applyDay(day);
+        setTypical(false);
+      } else {
+        datePicker.value = '';
+        applyDay(null);
+        setTypical(true, 'No data for that date - showing the typical day');
+      }
+    });
+    typicalBtn.addEventListener('click', () => {
+      datePicker.value = '';
+      applyDay(null);
+      setTypical(true);
+    });
+  } else {
+    datePicker.disabled = true;
+    typicalBtn.disabled = true;
+    typicalBtn.title = 'Run "npm run fetch-data" to enable date selection';
+  }
+
   // --- Playback state ---
   const speedEl = el<HTMLInputElement>('speed');
   let timeHours = 8; // open on the morning build-up
@@ -263,7 +321,7 @@ async function main(): Promise<void> {
     const advanceHours = playing && !scrubbing ? dt * speed : 0;
     timeHours = (timeHours + advanceHours) % 24;
 
-    const curCity = sampleSeries(cityTotals, timeHours);
+    const curCity = sampleSeries(activeCityTotals, timeHours);
     const norm = clamp(curCity / maxCity);
     const bpm = BPM_MIN + (BPM_MAX - BPM_MIN) * Math.pow(norm, 0.6);
     phase = (phase + dt * (bpm / 60)) % 1;

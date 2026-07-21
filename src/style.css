@@ -608,7 +608,11 @@ input[type='range'] {
 }
 
 .panel-top .clock {
-  margin: 0 auto;
+  margin: 0;
+}
+
+.panel-top .speed {
+  margin-left: auto;
 }
 
 .vitals-row {
@@ -962,5 +966,72 @@ input[type='range'] {
   .vitals-fade,
   .vitals-nav {
     display: none;
+  }
+}
+
+/* --- Date selector --- */
+html {
+  color-scheme: dark; /* dark native date picker + controls */
+}
+
+.daysel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.daysel-btn {
+  padding: 7px 11px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.daysel-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.daysel-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.daysel-date {
+  padding: 6px 8px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font-size: 0.75rem;
+  font-family: inherit;
+}
+
+.daysel-btn:disabled,
+.daysel-date:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .panel-top {
+    flex-wrap: wrap;
+  }
+  /* Let the day selector take its own row and the clock keep the top row tidy. */
+  .panel-top .speed {
+    margin-left: 0;
+  }
+  .daysel {
+    order: 3;
+    width: 100%;
+  }
+  .daysel-date {
+    flex: 1;
+    min-width: 0;
   }
 }

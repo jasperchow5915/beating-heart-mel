@@ -26,6 +26,17 @@ the CBD, hour by hour, so the city visibly wakes, surges at peak hour, and settl
 Controls: play/pause, a speed slider, and a time-of-day scrubber. Hover any sensor for its name and
 current count.
 
+### Pick a date
+
+By default the map shows the **typical day** (a year-averaged profile). Use the **date picker** to
+replay a **specific date** instead - a busier or quieter day reads as bigger/faster or
+smaller/slower, and you can spot weekends, events, and weather. **Typical day** resets it.
+
+To keep the app fast and immune to API rate limits, each selectable date is a **precomputed static
+file** (`public/data/day/<date>.json`, ~9 KB) lazy-loaded only when chosen - no runtime API calls.
+A scheduled GitHub Action refreshes the trailing window so recent dates stay current. If a date has
+no data it silently falls back to the typical day.
+
 ### City vitals
 
 All the layers report into one readout so you can watch the whole city breathe at a glance. The
@@ -117,13 +128,19 @@ profile once and writes it to `public/data/heartbeat.json`:
 The web app loads that file and animates it with MapLibre GL JS (glowing circle layers) plus a
 canvas activity trace. No API keys are required.
 
+The same script also writes one small file per date (`public/data/day/<date>.json`, via the
+OpenDataSoft *exports* endpoint fetched a month at a time) plus `public/data/day/index.json`. The
+date picker lazy-loads a single day file as a static asset when selected - so date browsing stays
+free of runtime API calls and rate limits, and a scheduled workflow keeps the recent window fresh.
+
 ## Running it
 
 ```bash
 npm install
 
-# Generate public/data/heartbeat.json from live open data (already checked in once).
-# Re-run any time to refresh with the latest counts.
+# Generate the pedestrian data: the typical-day heartbeat.json plus per-date
+# files under public/data/day/ (default last 90 days; BHOM_DAYS=0 to skip, or
+# e.g. BHOM_DAYS=365). Already checked in; re-run to refresh.
 npm run fetch-data
 
 # Generate the focus-view data (geocode 188 William St + surrounding streets).
@@ -166,7 +183,8 @@ beating-heart-of-melbourne/
 │   ├── focus-william-st.json # Generated: focus centre + local street network
 │   ├── trams.json            # Generated: chained tram paths
 │   ├── metro.json            # Generated: chained metro/rail paths
-│   └── flights.json          # Generated: airports + flight corridors
+│   ├── flights.json          # Generated: airports + flight corridors
+│   └── day/                  # Generated: per-date pedestrian files + index.json
 └── src/
     ├── main.ts               # Orchestration, animation loop, UI controls
     ├── map.ts                # MapLibre dark map + pulsing sensor layers
