@@ -189,13 +189,27 @@ async function main(): Promise<void> {
     for (let h = 0; h < 24; h += 0.5) m = Math.max(m, fn(h));
     return m || 1;
   };
-  const vitals = new Vitals(el('vitals'), {
+  const vitalsRow = el('vitals');
+  const vitals = new Vitals(vitalsRow, {
     bpm: BPM_MAX,
     pedestrians: maxCity,
     trams: peakOf((h) => tramLayer?.countAt(h) ?? 0),
     trains: peakOf((h) => metroLayer?.countAt(h) ?? 0),
     flights: peakOf((h) => flights.countAt(h)),
   });
+
+  // Mobile: hint that the vitals scroll sideways (trains + aircraft are to the
+  // right). The cue fades out once the user reaches the end.
+  const vitalsWrap = vitalsRow.parentElement;
+  const updateVitalsHint = (): void => {
+    if (!vitalsWrap) return;
+    const overflow = vitalsRow.scrollWidth - vitalsRow.clientWidth;
+    const atEnd = vitalsRow.scrollLeft >= overflow - 8;
+    vitalsWrap.classList.toggle('show-hint', overflow > 8 && !atEnd);
+  };
+  vitalsRow.addEventListener('scroll', updateVitalsHint, { passive: true });
+  window.addEventListener('resize', updateVitalsHint);
+  requestAnimationFrame(updateVitalsHint);
 
   // --- Playback state ---
   const speedEl = el<HTMLInputElement>('speed');

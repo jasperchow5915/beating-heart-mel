@@ -859,3 +859,61 @@ input[type='range'] {
     display: none;
   }
 }
+
+/* --- Vitals "swipe for more" hint (mobile only) --- */
+.vitals-wrap {
+  position: relative;
+}
+
+.vitals-hint {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 6px;
+  pointer-events: none;
+  border-radius: 0 12px 12px 0;
+  background: linear-gradient(to right, rgba(14, 12, 24, 0), rgba(14, 12, 24, 0.9) 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.vitals-wrap.show-hint .vitals-hint {
+  opacity: 1;
+}
+
+.vitals-hint span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  font-size: 16px;
+  line-height: 1;
+  animation: swipe-nudge 1.3s ease-in-out infinite;
+}
+
+@keyframes swipe-nudge {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-5px);
+  }
+}
+
+/* The vitals never overflow on wider screens, so the hint is mobile-only. */
+@media (min-width: 641px) {
+  .vitals-hint {
+    display: none;
+  }
+}
