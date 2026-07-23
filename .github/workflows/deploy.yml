@@ -43,13 +43,30 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # On scheduled / manual runs, regenerate the open data so recent dates
-      # stay fresh. Best-effort: if the API is unavailable, the committed data
-      # is used and the deploy still succeeds. Skipped on push (uses committed data).
-      - name: Refresh open data (best effort)
+      # On scheduled / manual runs, regenerate open data so recent dates stay fresh.
+      # We retry transient API failures and fail the workflow if refresh cannot complete,
+      # so stale data is never silently deployed.
+      - name: Refresh open data (with retries)
         if: github.event_name != 'push'
-        run: npm run fetch-data
-        continue-on-error: true
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            echo "Fetch attempt ${attempt}/3"
+            if npm run fetch-data; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "fetch-data failed after 3 attempts"
+              exit 1
+            fi
+            sleep $((attempt * 20))
+          done
+
+      # Emit the latest generated data date in logs for quick verification.
+      - name: Verify refreshed data window
+        if: github.event_name != 'push'
+        run: |
+          node --input-type=module -e "import { readFileSync } from 'node:fs'; const idx=JSON.parse(readFileSync('public/data/day/index.json','utf8')); console.log('day/index latest =', idx.latest, 'count =', idx.count);"
 
       - name: Build
         run: npm run build
