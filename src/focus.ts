@@ -21,51 +21,159 @@ export interface FocusInfo {
 
 const ACCENT = '#ff3d6b';
 const LABEL_FONT = ['Montserrat Regular', 'Open Sans Regular', 'Noto Sans Regular'];
+const FOCUS_FADE_MS = 900;
+const FOCUS_FADE_DELAY_MS = 60;
 
 /**
- * A "focus view" that spotlights the streets immediately around a single
- * address: it dims the rest of the city, highlights and labels the local
- * street network (from OpenStreetMap), drops a marker on the building, and
- * flies the camera in. Coexists with the running heartbeat animation.
+ * Focus view supports multiple named CBD locations.
+ * Only one location can be active on the map at a time.
  */
 export class FocusView {
-  private data: FocusData | null = null;
+  private store = new Map<string, FocusData>();
+  private activeId: string | null = null;
+  private builtId: string | null = null;
   private active = false;
-  private built = false;
   private marker: maplibregl.Marker | null = null;
   private saved: { center: LngLat; zoom: number; pitch: number; bearing: number } | null = null;
 
   constructor(private map: maplibregl.Map) {}
 
-  async load(url: string): Promise<boolean> {
+  async loadById(id: string, url: string): Promise<boolean> {
     try {
       const res = await fetch(url);
       if (!res.ok) return false;
-      this.data = (await res.json()) as FocusData;
+      this.store.set(id, (await res.json()) as FocusData);
       return true;
     } catch {
       return false;
     }
   }
 
-  get info(): FocusInfo | null {
-    if (!this.data) return null;
+  infoById(id: string): FocusInfo | null {
+    const d = this.store.get(id);
+    if (!d) return null;
     return {
-      center: this.data.center,
-      radiusMeters: this.data.meta.radiusMeters,
-      streetCount: this.data.meta.streetCount,
+      center: d.center,
+      radiusMeters: d.meta.radiusMeters,
+      streetCount: d.meta.streetCount,
     };
+  }
+
+  activateById(id: string, beforeId?: string): void {
+    const data = this.store.get(id);
+    if (!data) return;
+
+    if (this.activeId !== id) {
+      this.removeMarker();
+      this.teardownLayers();
+      this.activeId = id;
+      this.buildLayers(data, beforeId);
+    }
+
+    if (!this.active) {
+      this.saved = {
+        center: this.map.getCenter(),
+        zoom: this.map.getZoom(),
+        pitch: this.map.getPitch(),
+        bearing: this.map.getBearing(),
+      };
+    }
+
+    this.active = true;
+    this.setOpacities(true);
+    this.addMarkerForData(data);
+
+    this.map.flyTo({
+      center: [data.center.lon, data.center.lat],
+      zoom: 16,
+      pitch: 55,
+      bearing: this.map.getBearing(),
+      duration: 1600,
+      essential: true,
+    });
+  }
+
+  // Backwards compatibility
+  async load(url: string): Promise<boolean> {
+    return this.loadById('__default', url);
+  }
+
+  get info(): FocusInfo | null {
+    return this.infoById('__default');
   }
 
   isActive(): boolean {
     return this.active;
   }
 
-  /** Add all sources/layers up front (transparent until activated). */
   setup(beforeId?: string): void {
-    if (!this.data || this.built) return;
-    const { center } = this.data;
-    const holeR = this.data.meta.radiusMeters * 0.62;
+    const data = this.store.get('__default');
+    if (!data) return;
+    this.activeId = '__default';
+    this.buildLayers(data, beforeId);
+  }
+
+  toggle(): void {
+    if (this.active) this.exit();
+    else this.enter();
+  }
+
+  enter(): void {
+    const id = this.activeId ?? '__default';
+    const data = this.store.get(id);
+    if (!data) return;
+
+    if (this.builtId !== id) {
+      this.teardownLayers();
+      this.buildLayers(data);
+    }
+
+    if (this.active) return;
+
+    this.active = true;
+    this.saved = {
+      center: this.map.getCenter(),
+      zoom: this.map.getZoom(),
+      pitch: this.map.getPitch(),
+      bearing: this.map.getBearing(),
+    };
+    this.setOpacities(true);
+    this.addMarkerForData(data);
+
+    this.map.flyTo({
+      center: [data.center.lon, data.center.lat],
+      zoom: 16,
+      pitch: 55,
+      bearing: this.map.getBearing(),
+      duration: 1600,
+      essential: true,
+    });
+  }
+
+  exit(): void {
+    if (!this.active) return;
+    this.active = false;
+    this.setOpacities(false);
+    this.removeMarker();
+    if (this.saved) {
+      this.map.flyTo({
+        center: this.saved.center,
+        zoom: this.saved.zoom,
+        pitch: this.saved.pitch,
+        bearing: this.saved.bearing,
+        duration: 1400,
+        essential: true,
+      });
+    }
+    this.saved = null;
+  }
+
+  private buildLayers(data: FocusData, beforeId?: string): void {
+    if (!this.activeId) return;
+    if (this.builtId === this.activeId) return;
+
+    const { center } = data;
+    const holeR = data.meta.radiusMeters * 0.62;
 
     this.map.addSource('focus-mask', {
       type: 'geojson',
@@ -77,7 +185,7 @@ export class FocusView {
     });
     this.map.addSource('focus-streets', {
       type: 'geojson',
-      data: this.data.streets,
+      data: data.streets,
     });
 
     this.map.addLayer(
@@ -139,7 +247,6 @@ export class FocusView {
       beforeId,
     );
 
-    // Street-name labels sit on top of everything.
     this.map.addLayer({
       id: 'focus-street-labels',
       type: 'symbol',
@@ -161,51 +268,41 @@ export class FocusView {
       },
     });
 
-    this.built = true;
+    // Smooth fade for streets/labels as focus mode enters and exits.
+    this.map.setPaintProperty('focus-mask', 'fill-opacity-transition', {
+      duration: FOCUS_FADE_MS,
+      delay: FOCUS_FADE_DELAY_MS,
+    } as unknown);
+    this.map.setPaintProperty('focus-street-glow', 'line-opacity-transition', {
+      duration: FOCUS_FADE_MS,
+      delay: FOCUS_FADE_DELAY_MS,
+    } as unknown);
+    this.map.setPaintProperty('focus-street-core', 'line-opacity-transition', {
+      duration: FOCUS_FADE_MS,
+      delay: FOCUS_FADE_DELAY_MS,
+    } as unknown);
+    this.map.setPaintProperty('focus-ring', 'line-opacity-transition', {
+      duration: FOCUS_FADE_MS,
+      delay: FOCUS_FADE_DELAY_MS,
+    } as unknown);
+    this.map.setPaintProperty('focus-street-labels', 'text-opacity-transition', {
+      duration: FOCUS_FADE_MS,
+      delay: FOCUS_FADE_DELAY_MS,
+    } as unknown);
+
+    this.builtId = this.activeId;
   }
 
-  toggle(): void {
-    if (this.active) this.exit();
-    else this.enter();
-  }
-
-  enter(): void {
-    if (!this.data || !this.built || this.active) return;
-    this.active = true;
-    this.saved = {
-      center: this.map.getCenter(),
-      zoom: this.map.getZoom(),
-      pitch: this.map.getPitch(),
-      bearing: this.map.getBearing(),
-    };
-    this.setOpacities(true);
-    this.addMarker();
-    const { center } = this.data;
-    this.map.flyTo({
-      center: [center.lon, center.lat],
-      zoom: 16,
-      pitch: 55,
-      bearing: this.map.getBearing(),
-      duration: 1600,
-      essential: true,
-    });
-  }
-
-  exit(): void {
-    if (!this.active) return;
-    this.active = false;
-    this.setOpacities(false);
-    this.removeMarker();
-    if (this.saved) {
-      this.map.flyTo({
-        center: this.saved.center,
-        zoom: this.saved.zoom,
-        pitch: this.saved.pitch,
-        bearing: this.saved.bearing,
-        duration: 1400,
-        essential: true,
-      });
+  private teardownLayers(): void {
+    const layers = ['focus-street-labels', 'focus-ring', 'focus-street-core', 'focus-street-glow', 'focus-mask'];
+    for (const id of layers) {
+      if (this.map.getLayer(id)) this.map.removeLayer(id);
     }
+    const sources = ['focus-streets', 'focus-ring', 'focus-mask'];
+    for (const id of sources) {
+      if (this.map.getSource(id)) this.map.removeSource(id);
+    }
+    this.builtId = null;
   }
 
   private setOpacities(on: boolean): void {
@@ -219,18 +316,18 @@ export class FocusView {
     set('focus-street-labels', 'text-opacity', 1);
   }
 
-  private addMarker(): void {
-    if (this.marker || !this.data) return;
+  private addMarkerForData(data: FocusData): void {
+    this.removeMarker();
     const el = document.createElement('div');
     el.className = 'focus-marker';
     const dot = document.createElement('span');
     dot.className = 'focus-marker-dot';
     const label = document.createElement('span');
     label.className = 'focus-marker-label';
-    label.textContent = this.data.center.label;
+    label.textContent = data.center.label;
     el.append(dot, label);
     this.marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
-      .setLngLat([this.data.center.lon, this.data.center.lat])
+      .setLngLat([data.center.lon, data.center.lat])
       .addTo(this.map);
   }
 
@@ -251,7 +348,7 @@ export class FocusView {
   }
 
   private buildMask(lat: number, lon: number, radiusM: number) {
-    const big = 0.5; // degrees - large enough to cover the viewport at any zoom
+    const big = 0.5;
     const outer: Array<[number, number]> = [
       [lon - big, lat - big],
       [lon + big, lat - big],

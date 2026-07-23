@@ -90,37 +90,115 @@ async function main(): Promise<void> {
   map.init(sensors);
   loading.classList.add('hidden');
 
-  // --- Focus view (streets around 188 William Street) ---
+  // --- Focus view (CBD landmark picker) ---
+  const FOCUS_LOCATIONS: { id: string; label: string }[] = [
+    { id: 'flinders-street', label: 'Flinders Street Station' },
+    { id: 'federation-square', label: 'Federation Square' },
+    { id: 'southern-cross', label: 'Southern Cross Station' },
+    { id: 'flagstaff', label: 'Flagstaff Station' },
+  ];
+
   const focus = new FocusView(map.getMap());
   const focusToggle = el<HTMLButtonElement>('focusToggle');
+  const focusPicker = el('focusPicker');
+  const focusMenu = el('focusMenu');
   const focusInfo = el('focusInfo');
   const focusExit = el<HTMLButtonElement>('focusExit');
+  const focusLabel = el('focusLabel');
   const focusPedEl = el('focusPed');
   const focusStreetsEl = el('focusStreets');
 
-  let nearbyIndices: number[] = [];
-  const focusReady = await focus.load(`${import.meta.env.BASE_URL}data/focus-william-st.json`);
-  if (focusReady && focus.info) {
-    focus.setup('sensor-halo');
-    const { center, radiusMeters, streetCount } = focus.info;
-    focusStreetsEl.textContent = String(streetCount);
-    nearbyIndices = sensors
-      .map((s, i) => ({ i, d: haversine(center.lat, center.lon, s.lat, s.lon) }))
-      .filter((o) => o.d <= radiusMeters)
-      .map((o) => o.i);
+  // Pre-load all focus data files and index nearby sensors per location.
+  const focusDataMap = new Map<string, { ready: boolean; nearbyIndices: number[] }>();
+  await Promise.all(
+    FOCUS_LOCATIONS.map(async ({ id }) => {
+      const ok = await focus.loadById(id, `${import.meta.env.BASE_URL}data/focus-${id}.json`);
+      let nearbyIdxs: number[] = [];
+      if (ok) {
+        const info = focus.infoById(id);
+        if (info) {
+          nearbyIdxs = sensors
+            .map((s, i) => ({ i, d: haversine(info.center.lat, info.center.lon, s.lat, s.lon) }))
+            .filter((o) => o.d <= info.radiusMeters)
+            .map((o) => o.i);
+        }
+      }
+      focusDataMap.set(id, { ready: ok, nearbyIndices: nearbyIdxs });
+    }),
+  );
 
-    const syncFocusUI = () => {
-      const on = focus.isActive();
-      focusInfo.classList.toggle('hidden', !on);
-      focusToggle.classList.toggle('active', on);
-      focusToggle.textContent = on ? 'Exit focus view' : 'Focus on 188 William Street';
-    };
-    focusToggle.addEventListener('click', () => {
-      focus.toggle();
-      syncFocusUI();
+  let nearbyIndices: number[] = [];
+  const anyReady = [...focusDataMap.values()].some((v) => v.ready);
+
+  const syncFocusUI = () => {
+    const on = focus.isActive();
+    focusInfo.classList.toggle('hidden', !on);
+    focusToggle.classList.toggle('active', on);
+    if (!on) {
+      focusToggle.textContent = 'Focus on\u2026';
+      focusToggle.setAttribute('aria-expanded', 'false');
+    }
+  };
+
+  const activateLocation = (id: string) => {
+    const loc = FOCUS_LOCATIONS.find((l) => l.id === id);
+    const entry = focusDataMap.get(id);
+    if (!loc || !entry?.ready) return;
+
+    // Build/swap focus layer for this location.
+    focus.activateById(id, 'sensor-halo');
+
+    nearbyIndices = entry.nearbyIndices;
+    const info = focus.infoById(id);
+    focusStreetsEl.textContent = String(info?.streetCount ?? 0);
+    focusLabel.textContent = loc.label;
+    focusToggle.textContent = loc.label;
+    focusToggle.classList.add('active');
+    focusToggle.setAttribute('aria-expanded', 'false');
+    focusMenu.classList.remove('open');
+    focusInfo.classList.remove('hidden');
+  };
+
+  if (anyReady) {
+    // Dropdown toggle.
+    focusToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (focus.isActive()) {
+        focus.exit();
+        nearbyIndices = [];
+        syncFocusUI();
+      } else {
+        const open = focusMenu.classList.toggle('open');
+        focusToggle.setAttribute('aria-expanded', String(open));
+      }
     });
+
+    // Menu item clicks.
+    focusMenu.addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-focus]');
+      if (btn?.dataset.focus) activateLocation(btn.dataset.focus);
+    });
+
+    // Close menu on outside click.
+    document.addEventListener('click', (e) => {
+      if (focusPicker.contains(e.target as Node)) return;
+      if (focusMenu.classList.contains('open')) {
+        focusMenu.classList.remove('open');
+        focusToggle.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      if (focusMenu.classList.contains('open')) {
+        focusMenu.classList.remove('open');
+        focusToggle.setAttribute('aria-expanded', 'false');
+      }
+    });
+
     focusExit.addEventListener('click', () => {
       focus.exit();
+      nearbyIndices = [];
       syncFocusUI();
     });
   } else {

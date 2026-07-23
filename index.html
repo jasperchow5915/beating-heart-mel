@@ -16,7 +16,15 @@
       <h1>The Beating Heart of <span>Melbourne</span></h1>
       <p class="tagline">A day of pedestrian life across the city, pulsing hour by hour.</p>
       <div class="hero-actions">
-        <button id="focusToggle" class="focus-toggle" type="button">Focus on 188 William Street</button>
+        <div class="focus-picker" id="focusPicker">
+          <button class="focus-toggle" id="focusToggle" type="button" aria-haspopup="true" aria-expanded="false">Focus on&hellip;</button>
+          <ul class="focus-menu" id="focusMenu" role="menu">
+            <li><button class="focus-menu-item" data-focus="flinders-street" role="menuitem">Flinders Street Station</button></li>
+            <li><button class="focus-menu-item" data-focus="federation-square" role="menuitem">Federation Square</button></li>
+            <li><button class="focus-menu-item" data-focus="southern-cross" role="menuitem">Southern Cross Station</button></li>
+            <li><button class="focus-menu-item" data-focus="flagstaff" role="menuitem">Flagstaff Station</button></li>
+          </ul>
+        </div>
         <button id="tramToggle" class="tram-toggle" type="button">Hide trams</button>
         <button id="metroToggle" class="metro-toggle" type="button">Hide metro</button>
         <button id="flightToggle" class="flight-toggle" type="button">Show flights</button>
@@ -25,7 +33,7 @@
 
     <aside id="focusInfo" class="focus-info hidden" aria-live="polite">
       <div class="focus-info-head">
-        <strong>188 William Street</strong>
+        <strong id="focusLabel">Focus</strong>
         <button id="focusExit" class="focus-exit" type="button" aria-label="Exit focus view">&times;</button>
       </div>
       <div class="focus-metrics">
