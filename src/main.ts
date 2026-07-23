@@ -108,7 +108,10 @@ async function main(): Promise<void> {
   const focusExit = el<HTMLButtonElement>('focusExit');
   const focusLabel = el('focusLabel');
   const focusPedEl = el('focusPed');
+  const focusPedScopeEl = el('focusPedScope');
   const focusStreetsEl = el('focusStreets');
+
+  const FOCUS_FALLBACK_RADIUS_METERS = 2500;
 
   // Build menu entries from a single source of truth so HTML and runtime stay in sync.
   focusMenu.innerHTML = FOCUS_LOCATIONS.map(
@@ -116,21 +119,41 @@ async function main(): Promise<void> {
   ).join('');
 
   // Pre-load all focus data files and index nearby sensors per location.
-  const focusDataMap = new Map<string, { ready: boolean; nearbyIndices: number[] }>();
+  type FocusEntry = {
+    ready: boolean;
+    nearbyIndices: number[];
+    scopeLabel: string;
+  };
+  const focusDataMap = new Map<string, FocusEntry>();
   await Promise.all(
     FOCUS_LOCATIONS.map(async ({ id }) => {
       const ok = await focus.loadById(id, `${import.meta.env.BASE_URL}data/focus-${id}.json`);
       let nearbyIdxs: number[] = [];
+      let scopeLabel = 'pedestrians / hr';
       if (ok) {
         const info = focus.infoById(id);
         if (info) {
-          nearbyIdxs = sensors
+          const localNearby = sensors
             .map((s, i) => ({ i, d: haversine(info.center.lat, info.center.lon, s.lat, s.lon) }))
             .filter((o) => o.d <= info.radiusMeters)
             .map((o) => o.i);
+          if (localNearby.length) {
+            nearbyIdxs = localNearby;
+            scopeLabel = `pedestrians / hr within ${Math.round(info.radiusMeters)} m`;
+          } else {
+            const fallbackNearby = sensors
+              .map((s, i) => ({ i, d: haversine(info.center.lat, info.center.lon, s.lat, s.lon) }))
+              .filter((o) => o.d <= FOCUS_FALLBACK_RADIUS_METERS)
+              .sort((a, b) => a.d - b.d)
+              .map((o) => o.i);
+            nearbyIdxs = fallbackNearby;
+            scopeLabel = fallbackNearby.length
+              ? `pedestrians / hr within ${Math.round(FOCUS_FALLBACK_RADIUS_METERS / 100) / 10} km (nearest sensors)`
+              : 'pedestrians / hr (no nearby sensors)';
+          }
         }
       }
-      focusDataMap.set(id, { ready: ok, nearbyIndices: nearbyIdxs });
+      focusDataMap.set(id, { ready: ok, nearbyIndices: nearbyIdxs, scopeLabel });
     }),
   );
 
@@ -167,6 +190,8 @@ async function main(): Promise<void> {
 
     nearbyIndices = entry.nearbyIndices;
     const info = focus.infoById(id);
+    focusPedEl.textContent = '0';
+    focusPedScopeEl.textContent = entry.scopeLabel;
     focusStreetsEl.textContent = String(info?.streetCount ?? 0);
     focusLabel.textContent = loc.label;
     focusToggle.textContent = loc.label;
