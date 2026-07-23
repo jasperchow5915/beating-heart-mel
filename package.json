@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "fetch-data": "node scripts/fetch-data.mjs",
-    "fetch-focus": "node scripts/fetch-focus.mjs",
+    "fetch-focus": "node scripts/fetch-focus-multi.mjs",
     "fetch-trams": "node scripts/fetch-trams.mjs",
     "fetch-metro": "node scripts/fetch-metro.mjs",
     "fetch-flights": "node scripts/fetch-flights.mjs",

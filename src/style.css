@@ -496,6 +496,8 @@ input[type='range'] {
   -webkit-backdrop-filter: blur(14px);
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
   min-width: 220px;
+  max-height: min(52vh, 320px);
+  overflow-y: auto;
   pointer-events: auto;
 }
 
@@ -525,6 +527,13 @@ input[type='range'] {
 
 .focus-menu-item:hover {
   background: rgba(255, 61, 107, 0.18);
+}
+
+.focus-menu-item.is-disabled,
+.focus-menu-item:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: transparent;
 }
 
 .tram-toggle {

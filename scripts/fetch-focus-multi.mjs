@@ -44,13 +44,25 @@ const LOCATIONS = [
     label: 'Flagstaff Station',
     fallback: { lat: -37.810225, lon: 144.946391 },
   },
+  {
+    id: 'richmond-station',
+    address: 'Richmond Station, Richmond VIC 3121, Australia',
+    label: 'Richmond Station',
+    fallback: { lat: -37.824903, lon: 144.998206 },
+  },
+  {
+    id: 'cremorne',
+    address: 'Cremorne VIC 3121, Australia',
+    label: 'Cremorne',
+    fallback: { lat: -37.8295, lon: 144.9937 },
+  },
 ];
 
-// Bounding box around the Melbourne CBD to constrain geocoding.
+// Bounding box around inner Melbourne (CBD + Richmond/Cremorne) to constrain geocoding.
 // Order: lon_min, lat_min, lon_max, lat_max
-const CBD_VIEWBOX = '144.945,-37.822,144.975,-37.806';
-function inCbd(lat, lon) {
-  return lat >= -37.822 && lat <= -37.806 && lon >= 144.945 && lon <= 144.975;
+const INNER_VIEWBOX = '144.93,-37.84,145.02,-37.80';
+function inInnerMelbourne(lat, lon) {
+  return lat >= -37.84 && lat <= -37.8 && lon >= 144.93 && lon <= 145.02;
 }
 
 const OVERPASS_ENDPOINTS = [
@@ -89,13 +101,13 @@ async function geocode(address) {
       format: 'json',
       limit: 5,
       addressdetails: 1,
-      viewbox: CBD_VIEWBOX,
+      viewbox: INNER_VIEWBOX,
       bounded: 1,
     })}`;
     const rows = await getJson(url, { headers: { 'User-Agent': UA, Accept: 'application/json' } });
     if (Array.isArray(rows) && rows.length) {
       const hit =
-        rows.find((r) => inCbd(Number(r.lat), Number(r.lon))) ?? rows[0];
+        rows.find((r) => inInnerMelbourne(Number(r.lat), Number(r.lon))) ?? rows[0];
       if (hit) {
         return {
           lat: Number(hit.lat),
@@ -104,7 +116,7 @@ async function geocode(address) {
           source: 'nominatim',
         };
       }
-      console.warn('   no CBD match in geocoder results, using fallback coordinates');
+      console.warn('   no inner-Melbourne match in geocoder results, using fallback coordinates');
     }
   } catch (err) {
     console.warn('   geocoding failed, using fallback coordinates:', err.message);

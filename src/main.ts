@@ -96,6 +96,8 @@ async function main(): Promise<void> {
     { id: 'federation-square', label: 'Federation Square' },
     { id: 'southern-cross', label: 'Southern Cross Station' },
     { id: 'flagstaff', label: 'Flagstaff Station' },
+    { id: 'richmond-station', label: 'Richmond Station' },
+    { id: 'cremorne', label: 'Cremorne' },
   ];
 
   const focus = new FocusView(map.getMap());
@@ -107,6 +109,11 @@ async function main(): Promise<void> {
   const focusLabel = el('focusLabel');
   const focusPedEl = el('focusPed');
   const focusStreetsEl = el('focusStreets');
+
+  // Build menu entries from a single source of truth so HTML and runtime stay in sync.
+  focusMenu.innerHTML = FOCUS_LOCATIONS.map(
+    ({ id, label }) => `<li><button class="focus-menu-item" data-focus="${id}" role="menuitem">${label}</button></li>`,
+  ).join('');
 
   // Pre-load all focus data files and index nearby sensors per location.
   const focusDataMap = new Map<string, { ready: boolean; nearbyIndices: number[] }>();
@@ -126,6 +133,16 @@ async function main(): Promise<void> {
       focusDataMap.set(id, { ready: ok, nearbyIndices: nearbyIdxs });
     }),
   );
+
+  // Keep options visible even when data is missing, but disable unavailable locations.
+  for (const { id } of FOCUS_LOCATIONS) {
+    const btn = focusMenu.querySelector<HTMLButtonElement>(`[data-focus="${id}"]`);
+    const ready = focusDataMap.get(id)?.ready;
+    if (!btn || ready) continue;
+    btn.disabled = true;
+    btn.classList.add('is-disabled');
+    btn.title = `Missing data/focus-${id}.json`;
+  }
 
   let nearbyIndices: number[] = [];
   const anyReady = [...focusDataMap.values()].some((v) => v.ready);
